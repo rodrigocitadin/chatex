@@ -1,7 +1,9 @@
 defmodule Chatex.Session do
   use GenServer
 
-  ## Client
+  ##
+  ## API
+  ##
 
   def start_link(username) do
     GenServer.start_link(__MODULE__, username, name: via_tuple(username))
@@ -17,7 +19,9 @@ defmodule Chatex.Session do
 
   defp via_tuple(username), do: {:via, Registry, {Chatex.SessionRegistry, username}}
 
-  ## Server
+  ##
+  ## Callbacks
+  ##
 
   @impl true
   def init(username) do
