@@ -60,9 +60,9 @@ defmodule Chatex.Room do
     msg = %{user: username, text: message, ts: DateTime.utc_now()}
     new_state = %{state | messages: [msg | state.messages]}
 
-    # Enum.each(state.sessions, fn username ->
-    # send(username, {:new_message, msg})
-    # end)
+    Enum.each(state.sessions, fn username ->
+      send(username, {:new_message, Map.put(msg, :room_name, state.name)})
+    end)
 
     {:noreply, new_state}
   end

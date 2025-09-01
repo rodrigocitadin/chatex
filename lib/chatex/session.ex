@@ -29,4 +29,10 @@ defmodule Chatex.Session do
     Chatex.Room.send_message(room, state.username, msg)
     {:noreply, state}
   end
+
+  @impl true
+  def handle_info({:new_message, %{user: user, text: text, room_name: room_name}}, state) do
+    IO.puts("(#{room_name})/[#{user}]: #{text}")
+    {:noreply, state}
+  end
 end
