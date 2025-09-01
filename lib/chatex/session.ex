@@ -6,16 +6,16 @@ defmodule Chatex.Session do
   ##
 
   def start_link(username) do
-    GenServer.start_link(__MODULE__, username, name: via_tuple(username))
+    GenServer.start_link(__MODULE__, username, name: via_global(username))
   end
 
   def send_message(username, room, message) do
-    GenServer.cast(via_tuple(username), {:send_message, room, message})
+    GenServer.cast(via_global(username), {:send_message, room, message})
   end
 
-  def pid(username), do: GenServer.whereis({:via, Registry, {Chatex.SessionRegistry, username}})
+  def pid(username), do: :global.whereis_name({:session, username})
 
-  defp via_tuple(username), do: {:via, Registry, {Chatex.SessionRegistry, username}}
+  defp via_global(username), do: {:global, {:session, username}}
 
   ##
   ## Callbacks
