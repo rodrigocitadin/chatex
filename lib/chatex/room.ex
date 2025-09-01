@@ -5,16 +5,30 @@ defmodule Chatex.Room do
   ## API  
   ##
 
-  def start_link(name) do
-    GenServer.start_link(__MODULE__, %{}, name: via_tuple(name))
+  def start_link(room_name) do
+    GenServer.start_link(
+      __MODULE__,
+      %{name: room_name, messages: [], sessions: []},
+      name: via_tuple(room_name)
+    )
   end
 
-  def join(room_name, username, session_pid) do
-    GenServer.call(via_tuple(room_name), {:join, username, session_pid})
+  def join(room_name, username) do
+    session_pid = Chatex.Session.pid(username)
+    GenServer.call(via_tuple(room_name), {:join, session_pid})
   end
 
-  def send_message(room_name, from, message) do
-    GenServer.cast(via_tuple(room_name), {:message, from, message})
+  def leave(room_name, username) do
+    session_pid = Chatex.Session.pid(username)
+    GenServer.call(via_tuple(room_name), {:leave, session_pid})
+  end
+
+  def send_message(room_name, username, message) do
+    GenServer.cast(via_tuple(room_name), {:send_message, username, message})
+  end
+
+  def get_messages(room_name) do
+    GenServer.call(via_tuple(room_name), :get_messages)
   end
 
   defp via_tuple(room_name), do: {:via, Registry, {Chatex.RoomRegistry, room_name}}
@@ -23,20 +37,33 @@ defmodule Chatex.Room do
   ## Callbacks
   ##
 
-  def init(_) do
-    {:ok, %{sessions: %{}}}
+  @impl true
+  def init(state), do: {:ok, state}
+
+  @impl true
+  def handle_call({:join, session_pid}, _from, state) do
+    {:reply, :ok, %{state | sessions: [session_pid | state.sessions]}}
   end
 
-  def handle_call({:join, username, session_pid}, _from, state) do
-    new_state = put_in(state, [:sessions, username], session_pid)
-    {:reply, :ok, new_state}
+  @impl true
+  def handle_call({:leave, session_pid}, _from, state) do
+    {:reply, :ok, %{state | sessions: List.delete(state.sessions, session_pid)}}
   end
 
-  def handle_cast({:message, from, message}, state) do
-    Enum.each(state.sessions, fn {_username, pid} ->
-      send(pid, {:new_message, from, message})
-    end)
+  @impl true
+  def handle_call(:get_messages, _from, state) do
+    {:reply, Enum.reverse(state.messages), state}
+  end
 
-    {:noreply, state}
+  @impl true
+  def handle_cast({:send_message, username, message}, state) do
+    msg = %{user: username, text: message, ts: DateTime.utc_now()}
+    new_state = %{state | messages: [msg | state.messages]}
+
+    # Enum.each(state.sessions, fn username ->
+    # send(username, {:new_message, msg})
+    # end)
+
+    {:noreply, new_state}
   end
 end

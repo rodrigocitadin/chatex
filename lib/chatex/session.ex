@@ -9,13 +9,11 @@ defmodule Chatex.Session do
     GenServer.start_link(__MODULE__, username, name: via_tuple(username))
   end
 
-  def send_message(username, message) do
-    GenServer.cast(via_tuple(username), {:message, message})
+  def send_message(username, room, message) do
+    GenServer.cast(via_tuple(username), {:send_message, room, message})
   end
 
-  def get_messages(username) do
-    GenServer.call(via_tuple(username), :get_messages)
-  end
+  def pid(username), do: GenServer.whereis({:via, Registry, {Chatex.SessionRegistry, username}})
 
   defp via_tuple(username), do: {:via, Registry, {Chatex.SessionRegistry, username}}
 
@@ -24,25 +22,11 @@ defmodule Chatex.Session do
   ##
 
   @impl true
-  def init(username) do
-    state = %{
-      username: username,
-      messages: []
-    }
-
-    {:ok, state}
-  end
+  def init(username), do: {:ok, %{username: username}}
 
   @impl true
-  def handle_cast({:message, msg}, state) do
-    IO.puts("[#{state.username}] sent: #{msg}")
-
-    new_state = %{state | messages: [msg | state.messages]}
-    {:noreply, new_state}
-  end
-
-  @impl true
-  def handle_call(:get_messages, _from, state) do
-    {:reply, Enum.reverse(state.messages), state}
+  def handle_cast({:send_message, room, msg}, state) do
+    Chatex.Room.send_message(room, state.username, msg)
+    {:noreply, state}
   end
 end
