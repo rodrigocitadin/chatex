@@ -8,6 +8,7 @@ defmodule Chatex.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      Chatex.Node
       # Starts a worker by calling: Chatex.Worker.start_link(arg)
       # {Chatex.Worker, arg}
     ]
