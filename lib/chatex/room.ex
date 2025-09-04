@@ -15,6 +15,21 @@ defmodule Chatex.Room do
 
   def join(room_name, username) do
     session_pid = Chatex.Session.pid(username)
+
+    case GenServer.whereis(via_global(room_name)) do
+      nil ->
+        case Chatex.RoomSupervisor.start_room(room_name) do
+          {:ok, _pid} -> do_join(room_name, session_pid)
+          {:error, {:already_started, _pid}} -> do_join(room_name, session_pid)
+          {:error, reason} -> {:error, reason}
+        end
+
+      _pid ->
+        do_join(room_name, session_pid)
+    end
+  end
+
+  defp do_join(room_name, session_pid) do
     GenServer.call(via_global(room_name), {:join, session_pid})
   end
 
