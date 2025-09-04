@@ -7,6 +7,14 @@ defmodule Chatex.Application do
 
   @impl true
   def start(_type, _args) do
+    {:ok, hostname} = :inet.gethostname()
+    rand_suffix = :crypto.strong_rand_bytes(4) |> Base.encode16()
+    node_name = :"chatex_#{rand_suffix}@#{hostname}.local"
+    IO.puts("Starting node #{node_name}")
+
+    Node.start(node_name)
+    Node.set_cookie(:chatex)
+
     children = [
       Chatex.Node,
       {Chatex.RoomSupervisor, []}

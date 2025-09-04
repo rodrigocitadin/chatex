@@ -13,7 +13,7 @@ defmodule Chatex.Node do
       {:ok, names} ->
         nodes =
           Enum.map(names, fn {name, _port} ->
-            :"#{name}@#{:net_adm.localhost()}"
+            :"#{name}@arch.local"
           end)
 
         Enum.each(nodes, fn n ->
