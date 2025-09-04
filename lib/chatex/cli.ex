@@ -2,62 +2,70 @@ defmodule Chatex.CLI do
   def start do
     username = ask_username()
     IO.puts("Welcome to Chatex, #{username}!")
-    loop(%{room: nil, user: username})
+    {:ok, _pid} = Chatex.Session.start_link(username)
+    spawn(fn -> input_loop(username, nil) end)
+    listen_loop()
   end
 
   defp ask_username do
     username = IO.gets("Choose your username: ") |> String.trim()
 
-    case :global.register_name({:session, username}, self()) do
-      :yes ->
+    case :global.whereis_name({:session, username}) do
+      :undefined ->
         username
 
-      :no ->
+      _ ->
         IO.puts("Username '#{username}' already taken. Try another")
         ask_username()
     end
   end
 
-  defp loop(state) do
-    input = IO.gets("> ") |> String.trim()
+  defp input_loop(username, room) do
+    input = IO.gets("[#{room}/#{username}]> ") |> String.trim()
 
     cond do
       input == "/exit" ->
-        :global.unregister_name({:session, state.user})
+        :global.unregister_name({:session, username})
         IO.puts("Bye!")
-        :ok
+        System.halt(0)
 
       String.starts_with?(input, "/join ") ->
-        room = String.replace_prefix(input, "/join ", "")
+        new_room = String.replace_prefix(input, "/join ", "")
 
-        case Chatex.Room.join(room, state.user) do
-          :ok ->
-            IO.puts("Joined room '#{room}'")
-            loop(%{state | room: room})
-
-          _ ->
-            IO.puts("Failed to join room")
-            loop(state)
+        case Chatex.Room.join(new_room, username) do
+          :ok -> IO.puts("Joined room '#{new_room}'")
+          _ -> IO.puts("Failed to join room")
         end
+
+        input_loop(username, new_room)
 
       input == "/leave" ->
-        if state.room do
-          Chatex.Room.leave(state.room, state.user)
-          IO.puts("Left room '#{state.room}'")
+        if room do
+          Chatex.Room.leave(room, username)
+          IO.puts("Left room '#{room}'")
         end
 
-        loop(%{state | room: nil})
+        input_loop(username, nil)
 
-      state.room != nil and input != "" ->
-        Chatex.Room.send_message(state.user, state.room, input)
-        loop(state)
+      room != nil and input != "" ->
+        Chatex.Session.send_message(username, room, input)
+        input_loop(username, room)
 
       input != "" ->
         IO.puts("Not in a room. Use /join <room> first.")
-        loop(state)
+        input_loop(username, room)
 
       true ->
-        loop(state)
+        input_loop(username, room)
+    end
+  end
+
+  defp listen_loop do
+    receive do
+      {:new_message, %{user: user, text: text, room_name: room}} ->
+        IO.puts("\n[#{room}/#{user}]: #{text}")
+        IO.write("> ")
+        listen_loop()
     end
   end
 end
