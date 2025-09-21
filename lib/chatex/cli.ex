@@ -1,8 +1,14 @@
 defmodule Chatex.CLI do
+  def main(_args) do
+    {:ok, _} = Application.ensure_all_started(:chatex)
+    start()
+  end
+
   def start do
     username = ask_username()
     IO.puts("Welcome to Chatex, #{username}!")
     {:ok, _pid} = Chatex.Session.start_link(username)
+    Chatex.Session.register_cli(username, self())
     spawn(fn -> input_loop(username, nil) end)
     listen_loop()
   end
@@ -28,6 +34,10 @@ defmodule Chatex.CLI do
         :global.unregister_name({:session, username})
         IO.puts("Bye!")
         System.halt(0)
+
+      input == "/help" ->
+        print_help()
+        input_loop(username, room)
 
       String.starts_with?(input, "/join ") ->
         new_room = String.replace_prefix(input, "/join ", "")
@@ -56,8 +66,25 @@ defmodule Chatex.CLI do
         input_loop(username, room)
 
       true ->
+        if room == nil do
+          print_help()
+        end
+
         input_loop(username, room)
     end
+  end
+
+  defp print_help do
+    IO.puts("""
+
+    Available commands:
+    /join <room>  - Join a chat room.
+    /leave        - Leave the current room.
+    /help         - Show this help message.
+    /exit         - Exit Chatex.
+
+    Once in a room, just type your message and press Enter.
+    """)
   end
 
   defp listen_loop do

@@ -7,19 +7,14 @@ defmodule Chatex.Application do
 
   @impl true
   def start(_type, _args) do
-    {:ok, hostname} = :inet.gethostname()
-    rand_suffix = :crypto.strong_rand_bytes(4) |> Base.encode16()
-    node_name = :"chatex_#{rand_suffix}@#{hostname}.local"
-    IO.puts("Starting node #{node_name}")
-
-    Node.start(node_name)
+    name = :"chatex_#{:crypto.strong_rand_bytes(4) |> Base.encode16()}"
+    {:ok, _} = :net_kernel.start([name, :shortnames])
     Node.set_cookie(:chatex)
+    IO.puts("Starting node #{Node.self()}")
 
     children = [
       Chatex.Node,
       {Chatex.RoomSupervisor, []}
-      # Starts a worker by calling: Chatex.Worker.start_link(arg)
-      # {Chatex.Worker, arg}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

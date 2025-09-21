@@ -40,9 +40,9 @@ defmodule Chatex.Session do
   end
 
   @impl true
-  def handle_info({:new_message, %{user: user, text: text, room_name: room_name}}, state) do
-    if user != state.username do
-      IO.puts("[#{room_name}/#{user}]: #{text}")
+  def handle_info({:new_message, msg = %{user: user}}, state) do
+    if user != state.username and state.cli do
+      send(state.cli, {:new_message, msg})
     end
 
     {:noreply, state}

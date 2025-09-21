@@ -11,9 +11,11 @@ defmodule Chatex.Node do
   def handle_info(:connect, state) do
     case :net_adm.names() do
       {:ok, names} ->
+        host = Node.self() |> Atom.to_string() |> String.split("@") |> List.last()
+
         nodes =
           Enum.map(names, fn {name, _port} ->
-            :"#{name}@arch.local"
+            :"#{name}@#{host}"
           end)
 
         Enum.each(nodes, fn n ->
