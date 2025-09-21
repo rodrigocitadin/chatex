@@ -47,5 +47,5 @@ When inside a room, any text that does not start with a `/` will be sent as a me
 ## Current Limitations
 
 - **Local Area Network Only**: The application is designed to run on a single machine or on a local area network (LAN). Nodes on different, separate networks cannot discover or communicate with each other.
-- **Room Discovery**: You and other endpoints need to know the room name to connect.
-- **Security**: Since we are running only on a local area network, we have no security, but in the future, I will add room passwords and user verification.
+- **Room Discovery**: You and other users need to know the room name to connect.
+- **Security**: Since we are running only on a local area network, we have no security, but in the future I will add room passwords and user verification.
